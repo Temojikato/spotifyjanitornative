@@ -20,7 +20,7 @@ After cloning the repository, you have two ways to run Spotify Janitor on Androi
 A production build of the APK has already been pushed to the repository. Follow these steps to install it using ADB:
 
 1. **Clone the repository:**  
-   ```git clone https://github.com/Temojikato/spotifyjanitornative.git  ```
+   ```git clone https://github.com/Temojikato/spotifyjanitornative.git  ``` <br>
    ```cd spotifyjanitor```
 
 2. **Prepare Your Android Device/Emulator:**
@@ -41,7 +41,7 @@ Once installed, the app should launch on your device or emulator.
 For development and testing, you can run the app using the React Native CLI:
 
 1. **Clone the repository:**  
-   ```git clone https://github.com/Temojikato/spotifyjanitornative.git  ```
+   ```git clone https://github.com/Temojikato/spotifyjanitornative.git  ``` <br>
    ```cd spotifyjanitor```
 
 2. **Install Dependencies:**
@@ -125,7 +125,7 @@ Na het clonen van de repository heb je twee manieren om Spotify Janitor op Andro
 Een productiebuild van de APK is al naar de repository gepusht. Volg deze stappen om hem te installeren met ADB:
 
 1. **Clone de repository:**  
-   ```git clone https://github.com/Temojikato/spotifyjanitornative.git  ```
+   ```git clone https://github.com/Temojikato/spotifyjanitornative.git  ``` <br>
    ```cd spotifyjanitor```
 
 2. **Bereid je telefoon of emulator voor :**
@@ -146,7 +146,7 @@ Zodra de app geïnstalleerd is, zou hij automatisch op je apparaat of emulator m
 Voor ontwikkeling en testen kun je de app starten via de React Native CLI:
 
 1. **Clone de repository:**  
-   ```git clone https://github.com/Temojikato/spotifyjanitornative.git  ```
+   ```git clone https://github.com/Temojikato/spotifyjanitornative.git  ``` <br>
    ```cd spotifyjanitor```
 
 2. **Installeer Dependencies:**
