@@ -24,7 +24,7 @@ A production build of the APK has already been pushed to the repository. Follow 
    Open a terminal at the location you want to download the repository and run :
 
    ```git clone https://github.com/Temojikato/spotifyjanitornative.git  ``` <br>
-   ```cd spotifyjanitor```
+   ```cd spotifyjanitornative```
 
 2. **Prepare Your Android Device/Emulator:**
 
@@ -132,7 +132,7 @@ Een productiebuild van de APK is al naar de repository gepusht. Volg deze stappe
    Open een terminal op de locatie waar je de app wilt downloaden en run :
 
    ```git clone https://github.com/Temojikato/spotifyjanitornative.git  ``` <br>
-   ```cd spotifyjanitor```
+   ```cd spotifyjanitornative```
 
 2. **Bereid je telefoon of emulator voor :**
 
