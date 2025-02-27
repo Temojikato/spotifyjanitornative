@@ -28,8 +28,9 @@ A production build of the APK has already been pushed to the repository. Follow 
 
 2. **Prepare Your Android Device/Emulator:**
 
-    Using an Emulator: Open Android Studio, launch an Android Virtual Device (AVD), or use your preferred emulator.
-    Using a Physical Device: Connect your device via USB and ensure USB debugging is enabled.
+    Using an Emulator: Open Android Studio, launch an Android Virtual Device (AVD), or use your preferred emulator. <br>
+    Using a Physical Device: Connect your device via USB and ensure USB debugging is enabled <br>
+   *this can be done either through ; 1) the pop-up when connecting to your pc 2) dragging down the status bar and tapping 'usb for ...' 3) In the developer settings. check this url for more info : https://developer.android.com/studio/debug/dev-options*
 
 3. **Install the APK via ADB:**
     In the terminal you used before run:
@@ -135,8 +136,15 @@ Een productiebuild van de APK is al naar de repository gepusht. Volg deze stappe
 
 2. **Bereid je telefoon of emulator voor :**
 
-   Emulator gebruiken: Open Android Studio, start een Android Virtual Device (AVD) of gebruik je favoriete emulator.
-   Fysiek apparaat gebruiken: Sluit je apparaat via USB aan en zorg dat USB debugging aanstaat.
+   Emulator gebruiken: Open Android Studio, start een Android Virtual Device (AVD) of gebruik je favoriete emulator.<br>
+   Fysiek apparaat gebruiken: Sluit je apparaat via USB aan en zorg dat USB debugging aanstaat.<br>
+   *Dit kan op de volgende manieren:
+
+   Via het pop-upvenster dat verschijnt als je je pc aansluit.
+   Door de statusbalk naar beneden te trekken en op 'usb voor ...' te tikken.
+   Via de ontwikkelaarsinstellingen.
+
+Check deze url voor meer info: https://developer.android.com/studio/debug/dev-options*
 
 3. **Install the APK via ADB:**
    In the terminal you used before run:
