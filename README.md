@@ -20,6 +20,9 @@ After cloning the repository, you have two ways to run Spotify Janitor on Androi
 A production build of the APK has already been pushed to the repository. Follow these steps to install it using ADB:
 
 1. **Clone the repository:**  
+   
+   Open a terminal at the location you want to download the repository and run :
+2. 
    ```git clone https://github.com/Temojikato/spotifyjanitornative.git  ``` <br>
    ```cd spotifyjanitor```
 
@@ -125,6 +128,8 @@ Na het clonen van de repository heb je twee manieren om Spotify Janitor op Andro
 Een productiebuild van de APK is al naar de repository gepusht. Volg deze stappen om hem te installeren met ADB:
 
 1. **Clone de repository:**  
+   Open een terminal op de locatie waar je de app wilt downloaden en run :
+2. 
    ```git clone https://github.com/Temojikato/spotifyjanitornative.git  ``` <br>
    ```cd spotifyjanitor```
 
