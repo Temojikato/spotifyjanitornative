@@ -1,13 +1,21 @@
-// Callback.tsx
 import React, { useEffect } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { getToken } from '../services/auth';
 import axios from 'axios';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StackNavigationProp } from '@react-navigation/stack';
+
+type RootStackParamList = {
+  Login: undefined;
+  Callback: undefined;
+  SavedTracks: undefined;
+};
+
+type CallbackNavigationProp = StackNavigationProp<RootStackParamList, 'Callback'>;
 
 const Callback: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<CallbackNavigationProp>();
   const route = useRoute();
 
   const fetchAndCacheProfile = async () => {
@@ -27,13 +35,12 @@ const Callback: React.FC = () => {
   };
 
   useEffect(() => {
-    // Expecting the 'code' parameter from the deep link
     const { code } = route.params as { code?: string };
     if (code) {
       getToken(code)
         .then(() => fetchAndCacheProfile())
         .then(() => {
-          navigation.navigate('SavedTracks'); // Adjust the route name as needed
+          navigation.navigate('SavedTracks');
         })
         .catch(err => {
           console.error('Failed to obtain token', err);

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { redirectToSpotifyAuth } from '../services/auth';
 
 const LoginPage: React.FC = () => {
+
   const handleLogin = async () => {
     try {
       await redirectToSpotifyAuth();
