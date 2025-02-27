@@ -1,4 +1,3 @@
-// src/styles/globalToastStyles.ts
 import { StyleSheet } from 'react-native';
 
 export const globalToastStyles = StyleSheet.create({
@@ -13,7 +12,7 @@ export const globalToastStyles = StyleSheet.create({
   },
   infoGlow: {
     borderWidth: 2,
-    borderColor: '#007AFF', // blue glow
+    borderColor: '#007AFF',
     shadowColor: '#007AFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
@@ -22,7 +21,7 @@ export const globalToastStyles = StyleSheet.create({
   },
   successGlow: {
     borderWidth: 2,
-    borderColor: '#1ED760', // green glow
+    borderColor: '#1ED760',
     shadowColor: '#1ED760',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
@@ -31,7 +30,7 @@ export const globalToastStyles = StyleSheet.create({
   },
   errorGlow: {
     borderWidth: 2,
-    borderColor: '#FF3B30', // red glow
+    borderColor: '#FF3B30',
     shadowColor: '#FF3B30',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,

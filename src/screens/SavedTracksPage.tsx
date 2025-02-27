@@ -9,7 +9,7 @@ import {
   StyleSheet,
   RefreshControl
 } from 'react-native';
-import Toast from 'react-native-toast-message'; // Ensure you have a toast library installed/configured
+import Toast from 'react-native-toast-message';
 import { getUserSavedTracks, removeUserSavedTrack, saveUserTrack } from '../services/spotifyApi';
 import Layout from '../components/Layout';
 import MobileTrackItem from '../components/MobileTrackItem';
@@ -82,7 +82,6 @@ const handleRemove = async (trackId: string) => {
         trackTitle: trackToRemove.title,
         onUndo: () => undoRemoval(trackToRemove),
       },
-      // Optionally set the toast visibility time, e.g. 15 seconds:
       visibilityTime: 5000,
     });
   } catch (error) {

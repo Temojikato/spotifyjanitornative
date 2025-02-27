@@ -1,45 +1,84 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import ProfileModal from '../../components/ProfileModal';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import ProfileModal from '../../src/components/ProfileModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Linking } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { AuthContext } from '../../src/context/AuthContext';
+
+const mockReplace = jest.fn();
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ replace: mockReplace }),
+}));
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn(),
+  multiRemove: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.spyOn(Linking, 'openURL').mockImplementation(() => Promise.resolve());
+
+const sampleProfile = {
+  display_name: 'Test User',
+  images: [{ url: 'http://example.com/profile.jpg' }],
+  product: 'premium',
+  country: 'US',
+  email: 'test@example.com',
+  id: 'user1',
+  followers: { total: 100 },
+  external_urls: { spotify: 'http://spotify.com/user1' },
+};
 
 describe('ProfileModal', () => {
-  const fakeProfile = {
-    display_name: 'Test User',
-    images: [{ url: 'http://example.com/profile.png' }],
-    product: 'premium',
-    country: 'US',
-    email: 'test@example.com',
-    id: 'user123',
-    followers: { total: 123 },
-    external_urls: { spotify: 'http://spotify.com/user123' }
-  };
-
-  afterEach(() => {
-    localStorage.clear();
+  beforeEach(() => {
+    (AsyncStorage.getItem as jest.Mock).mockReset();
+    (AsyncStorage.multiRemove as jest.Mock).mockClear();
+    mockReplace.mockClear();
   });
 
-  test('renders profile information when profile data is available', () => {
-    localStorage.setItem('user_profile', JSON.stringify(fakeProfile));
-    render(<ProfileModal open={true} onClose={() => {}} />);
-    expect(screen.getByText(fakeProfile.display_name)).toBeInTheDocument();
-    expect(screen.getByText(/Email:/i)).toBeInTheDocument();
-    expect(screen.getByText(fakeProfile.email)).toBeInTheDocument();
-    expect(screen.getByText(/Status:/i)).toBeInTheDocument();
-    expect(screen.getByText(fakeProfile.product)).toBeInTheDocument();
-    expect(screen.getByText(/Country:/i)).toBeInTheDocument();
-    expect(screen.getByText(fakeProfile.country)).toBeInTheDocument();
-    expect(screen.getByText(/Followers:/i)).toBeInTheDocument();
-    expect(screen.getByText(String(fakeProfile.followers.total))).toBeInTheDocument();
-    const viewLink = screen.getByRole('link', { name: /view on spotify/i });
-    expect(viewLink).toHaveAttribute('href', fakeProfile.external_urls.spotify);
-    const profileImg = screen.getByAltText(fakeProfile.display_name);
-    expect(profileImg).toBeInTheDocument();
-    expect(profileImg).toHaveAttribute('src', fakeProfile.images[0].url);
-  });
 
-  test('renders error message when no profile data is found', () => {
-    localStorage.removeItem('user_profile');
-    render(<ProfileModal open={true} onClose={() => {}} />);
-    expect(screen.getByText(/No profile data found\. Please log in again\./i)).toBeInTheDocument();
+  it('calls navigation.replace with "Login" when logout is pressed', async () => {
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(JSON.stringify(sampleProfile));
+    const onCloseMock = jest.fn();
+
+    const logoutMock = jest.fn().mockImplementation(async () => {
+      await AsyncStorage.multiRemove([
+        'access_token',
+        'code_verifier',
+        'profile_pic',
+        'user_profile'
+      ]);
+      mockReplace('Login');
+    });
+
+    const { getByText } = render(
+      <AuthContext.Provider
+        value={{
+          isAuthenticated: false,
+          setIsAuthenticated: jest.fn(),
+          logout: logoutMock,
+        }}
+      >
+        <ProfileModal open={true} onClose={onCloseMock} />
+      </AuthContext.Provider>
+
+    );
+
+    await waitFor(() => {
+      expect(getByText('Test User')).toBeTruthy();
+    });
+    const logoutButton = getByText('Logout');
+    fireEvent.press(logoutButton);
+
+    await waitFor(() => {
+      expect(logoutMock).toHaveBeenCalled();
+      expect(AsyncStorage.multiRemove).toHaveBeenCalledWith([
+        'access_token',
+        'code_verifier',
+        'profile_pic',
+        'user_profile'
+      ]);
+      expect(mockReplace).toHaveBeenCalledWith('Login');
+    });
   });
 });

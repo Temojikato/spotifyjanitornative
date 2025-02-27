@@ -1,65 +1,129 @@
-import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react';
-import MobileTrackItem from '../../components/MobileTrackItem';
+declare global {
+  var __capturedPanResponderConfig: any;
+}
+global.__capturedPanResponderConfig = null;
 
-describe('MobileTrackItem', () => {
+import React from 'react';
+import { render, act } from '@testing-library/react-native';
+import MobileTrackItem from '../../src/components/MobileTrackItem';
+import { Animated, PanResponder, Image, PanResponderCallbacks, PanResponderInstance } from 'react-native';
+
+jest.mock('react-native-vector-icons/MaterialIcons', () => 'MaterialIcons');
+
+jest.spyOn(Animated, 'timing').mockImplementation(() => ({
+  start: (callback?: (result: { finished: boolean }) => void) => {
+    if (callback) callback({ finished: true });
+  },
+  stop: () => { },
+  reset: () => { },
+}));
+
+beforeAll(() => {
+  jest.spyOn(PanResponder, 'create').mockImplementation(
+    (config: PanResponderCallbacks): PanResponderInstance => {
+      global.__capturedPanResponderConfig = config;
+
+      return {
+        panHandlers: {
+          onStartShouldSetResponder: config.onStartShouldSetPanResponder as unknown as (event: any) => boolean,
+          onStartShouldSetResponderCapture: config.onStartShouldSetPanResponderCapture as unknown as (event: any) => boolean,
+
+          onMoveShouldSetResponder: config.onMoveShouldSetPanResponder as unknown as (event: any) => boolean,
+          onMoveShouldSetResponderCapture: config.onMoveShouldSetPanResponderCapture as unknown as (event: any) => boolean,
+
+          onResponderMove: config.onPanResponderMove as unknown as (event: any) => void,
+          onResponderGrant: config.onPanResponderGrant as unknown as (event: any) => void,
+          onResponderRelease: config.onPanResponderRelease as unknown as (event: any) => void,
+          onResponderEnd: config.onPanResponderEnd as unknown as (event: any) => void,
+          onResponderTerminate: config.onPanResponderTerminate as unknown as (event: any) => void,
+          onResponderReject: config.onPanResponderReject as unknown as (event: any) => void,
+          onResponderStart: config.onPanResponderStart as unknown as (event: any) => void,
+          onResponderTerminationRequest: config.onPanResponderTerminationRequest as unknown as (event: any) => boolean,
+        },
+      };
+    }
+  );
+});
+
+afterAll(() => {
+  (PanResponder.create as jest.Mock).mockRestore();
+});
+
+describe('MobileTrackItem (Monkey-Patch)', () => {
   const props = {
     id: '1',
     title: 'Test Song',
     artist: 'Test Artist',
-    albumArt: 'http://example.com/album.png',
+    albumArt: 'http://example.com/art.jpg',
     onRemove: jest.fn(),
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    props.onRemove.mockReset();
+    global.__capturedPanResponderConfig = null;
   });
 
-  test('renders correctly with title, artist, and album art', () => {
-    const { getByAltText, getByText } = render(<MobileTrackItem {...props} />);
-    expect(getByAltText('Test Song')).toBeInTheDocument();
-    expect(getByText('Test Song')).toBeInTheDocument();
-    expect(getByText('Test Artist')).toBeInTheDocument();
+  it('renders title, artist, and album art', () => {
+    const { getByText, getByTestId, UNSAFE_getByType } = render(<MobileTrackItem {...props} />);
+
+    expect(getByText('Test Song')).toBeTruthy();
+    expect(getByText('Test Artist')).toBeTruthy();
+
+    const swipeView = getByTestId('swipe-view');
+    const image = swipeView ? swipeView.findByType(Image) : null;
+    expect(image?.props.source).toEqual({ uri: props.albumArt });
   });
 
-  test('calls onRemove when swiped right beyond threshold', async () => {
-    const { getByTestId, getByAltText } = render(<MobileTrackItem {...props} />);
-    
-    const containerDiv = getByTestId('container-div');
-    expect(containerDiv).toBeTruthy();
+  it('calls onRemove when swipe exceeds threshold (dx > 150)', async () => {
+    render(<MobileTrackItem {...props} />);
 
-    Object.defineProperty(containerDiv, 'offsetWidth', { configurable: true, value: 300 });
+    expect(global.__capturedPanResponderConfig).not.toBeNull();
+    const config = global.__capturedPanResponderConfig;
 
-    const img = getByAltText(props.title);
-    const motionDiv = img.closest('div');
-    expect(motionDiv).toBeTruthy();
+    const fakeEvent = { nativeEvent: {} };
+    const gestureState = {
+      dx: 160,
+      dy: 0,
+      moveX: 160,
+      moveY: 0,
+      x0: 0,
+      y0: 0,
+      numberActiveTouches: 1,
+      stateID: 1,
+    };
 
-    fireEvent.touchStart(motionDiv!, { touches: [{ clientX: 0, clientY: 0 }] });
-    fireEvent.touchMove(motionDiv!, { touches: [{ clientX: 200, clientY: 0 }] });
-    fireEvent.touchEnd(motionDiv!, { changedTouches: [{ clientX: 200, clientY: 0 }] });
-
-    await waitFor(() => {
-      expect(props.onRemove).toHaveBeenCalledWith(props.id);
+    await act(async () => {
+      config.onMoveShouldSetPanResponder(fakeEvent, gestureState);
+      config.onPanResponderMove(fakeEvent, gestureState);
+      config.onPanResponderRelease(fakeEvent, gestureState);
     });
+
+    expect(props.onRemove).toHaveBeenCalledWith('1');
   });
 
-  test('does not call onRemove when swiped right below threshold', async () => {
-    const { getByTestId, getByAltText } = render(<MobileTrackItem {...props} />);
-    
-    const containerDiv = getByTestId('container-div');
-    expect(containerDiv).toBeTruthy();
-    Object.defineProperty(containerDiv, 'offsetWidth', { configurable: true, value: 300 });
+  it('does not call onRemove when swipe is below threshold (dx < 150)', async () => {
+    render(<MobileTrackItem {...props} />);
+    expect(global.__capturedPanResponderConfig).not.toBeNull();
 
-    const img = getByAltText(props.title);
-    const motionDiv = img.closest('div');
-    expect(motionDiv).toBeTruthy();
+    const config = global.__capturedPanResponderConfig;
+    const fakeEvent = { nativeEvent: {} };
+    const gestureState = {
+      dx: 100,
+      dy: 0,
+      moveX: 100,
+      moveY: 0,
+      x0: 0,
+      y0: 0,
+      numberActiveTouches: 1,
+      stateID: 1,
+    };
 
-    fireEvent.touchStart(motionDiv!, { touches: [{ clientX: 0, clientY: 0 }] });
-    fireEvent.touchMove(motionDiv!, { touches: [{ clientX: 1, clientY: 0 }] });
-    fireEvent.touchEnd(motionDiv!, { changedTouches: [{ clientX: 1, clientY: 0 }] });
-
-    await waitFor(() => {
-      expect(props.onRemove).not.toHaveBeenCalled();
+    await act(async () => {
+      config.onMoveShouldSetPanResponder(fakeEvent, gestureState);
+      config.onPanResponderMove(fakeEvent, gestureState);
+      config.onPanResponderRelease(fakeEvent, gestureState);
     });
+
+    expect(props.onRemove).not.toHaveBeenCalled();
   });
 });

@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: 'transparent', // so the gradient shows through
+    backgroundColor: 'transparent',
     margin: 8,
     padding: 8,
     borderRadius: 8

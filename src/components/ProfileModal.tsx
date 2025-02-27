@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   Modal,
   View,
@@ -13,12 +13,12 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useNavigation } from '@react-navigation/native';
+import { AuthContext } from '../../src/context/AuthContext';
 
 type RootStackParamList = {
   Login: undefined;
   Callback: undefined;
   SavedTracks: undefined;
-  // other screens...
 };
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -42,21 +42,16 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose }) => {
   const navigation = useNavigation<NavigationProp>();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const { logout } = useContext(AuthContext);
 
-  // Logout logic moved here from Header.
   const handleLogout = async () => {
     try {
-      await AsyncStorage.multiRemove([
-        'access_token',
-        'code_verifier',
-        'profile_pic',
-        'user_profile'
-      ]);
-      navigation.replace('Login');
+      await logout();
     } catch (error) {
       console.error(error);
     }
   };
+
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -86,10 +81,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose }) => {
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
           {loading ? (
-            <ActivityIndicator size="large" color="#ffffff" />
+            <ActivityIndicator testID="activity-indicator" size="large" color="#ffffff" />
           ) : profile ? (
             <ScrollView contentContainerStyle={styles.contentContainer}>
-              {/* Header row with profile name on left and Logout on right */}
               <View style={styles.headerRow}>
                 <Text style={styles.title}>{profile.display_name}</Text>
                 <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
@@ -135,7 +129,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose }) => {
               </Text>
             </View>
           )}
-          {/* Optionally, you may keep a close button at the bottom if needed */}
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Text style={styles.closeButtonText}>Close</Text>
           </TouchableOpacity>
@@ -174,7 +167,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   logoutButton: {
-    backgroundColor: '#FF3B30', // Adjust color as desired
+    backgroundColor: '#FF3B30',  
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 4,

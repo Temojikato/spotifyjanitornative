@@ -1,104 +1,96 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import Header from '../../components/Header';
-import { BrowserRouter } from 'react-router-dom';
-import '@testing-library/jest-dom';
-import { useMediaQuery } from '@mui/material';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import Header from '../../src/components/Header';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { Image } from 'react-native';
 
-jest.mock('@mui/material', () => {
-  const actual = jest.requireActual('@mui/material');
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn(),
+}));
+
+const mockGoBack = jest.fn();
+const mockNavigate = jest.fn();
+const mockCanGoBack = jest.fn();
+
+jest.mock('@react-navigation/native', () => {
+  const actualNav = jest.requireActual('@react-navigation/native');
   return {
-    ...actual,
-    useMediaQuery: jest.fn()
+    ...actualNav,
+    useNavigation: () => ({
+      goBack: mockGoBack,
+      navigate: mockNavigate,
+      canGoBack: mockCanGoBack,
+    }),
+    useRoute: jest.fn(),
   };
 });
 
-const mockedNavigate = jest.fn();
-const mockedLocation = { pathname: '/not-excluded' };
-
-jest.mock('react-router-dom', () => {
-  const actual = jest.requireActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mockedNavigate,
-    useLocation: () => mockedLocation,
-  };
+jest.mock('../../src/components/ProfileModal', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  return ({ open }: { open: boolean }) => (open ? <Text>Profile Modal Open</Text> : null);
 });
 
 describe('Header', () => {
-  const mockedUseMediaQuery = useMediaQuery as jest.Mock;
-
   beforeEach(() => {
-    localStorage.clear();
-    mockedUseMediaQuery.mockReturnValue(false);
+    (useRoute as jest.Mock).mockReturnValue({ name: 'Home' });
+    (AsyncStorage.getItem as jest.Mock).mockReset();
+    mockGoBack.mockReset();
+    mockNavigate.mockReset();
+    mockCanGoBack.mockReset();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  it('renders without avatar when not logged in', async () => {
+    (AsyncStorage.getItem as jest.Mock)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    (useRoute as jest.Mock).mockReturnValue({ name: 'Home' });
+    mockCanGoBack.mockReturnValue(false);
+    const { getByText } = render(<Header />);
+    await waitFor(() => expect(AsyncStorage.getItem).toHaveBeenCalled());
+    const janitorText = getByText('Janitor');
+    expect(janitorText).toBeTruthy();
+  });
+  it('renders avatar when logged in and opens modal on avatar press', async () => {
+    (AsyncStorage.getItem as jest.Mock)
+      .mockResolvedValueOnce('dummy_token')
+      .mockResolvedValueOnce('http://example.com/profile.jpg');
+    (useRoute as jest.Mock).mockReturnValue({ name: 'Home' });
+    mockCanGoBack.mockReturnValue(false);
+    const { UNSAFE_getAllByType, queryByText } = render(<Header />);
+    await waitFor(() => expect(AsyncStorage.getItem).toHaveBeenCalled());
+    const images = UNSAFE_getAllByType(Image);
+    expect(images.length).toBeGreaterThan(1);
+    expect(queryByText('Profile Modal Open')).toBeNull();
+    fireEvent.press(images[1]);
+    await waitFor(() => expect(queryByText('Profile Modal Open')).toBeTruthy());
   });
 
-  test('renders logo, title, and profile avatar', () => {
-    localStorage.setItem('profile_pic', 'http://example.com/avatar.png');
-    render(
-      <BrowserRouter>
-        <Header />
-      </BrowserRouter>
-    );
-    expect(screen.getByAltText('Spotify Logo')).toBeInTheDocument();
-    expect(screen.getByText('Janitor')).toBeInTheDocument();
-    expect(screen.getByAltText('Profile')).toHaveAttribute('src', 'http://example.com/avatar.png');
+  it('shows back arrow when route is not excluded and can go back', async () => {
+    (AsyncStorage.getItem as jest.Mock)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    (useRoute as jest.Mock).mockReturnValue({ name: 'Details' });
+    mockCanGoBack.mockReturnValue(true);
+    const { getByText } = render(<Header />);
+    await waitFor(() => expect(AsyncStorage.getItem).toHaveBeenCalled());
+    const backArrow = getByText('<');
+    expect(backArrow).toBeTruthy();
+    fireEvent.press(backArrow);
+    expect(mockGoBack).toHaveBeenCalled();
   });
 
-  test('falls back to default avatar when profile_pic is missing', () => {
-    render(
-      <BrowserRouter>
-        <Header />
-      </BrowserRouter>
-    );
-    expect(screen.getByAltText('Profile')).toHaveAttribute('src', '/default-avatar.png');
-  });
-
-  test('clicking on logo and title navigates to "/"', () => {
-    render(
-      <BrowserRouter>
-        <Header />
-      </BrowserRouter>
-    );
-    fireEvent.click(screen.getByAltText('Spotify Logo'));
-    expect(mockedNavigate).toHaveBeenCalledWith('/');
-    fireEvent.click(screen.getByText('Janitor'));
-    expect(mockedNavigate).toHaveBeenCalledWith('/');
-  });
-
-  test('opens menu on clicking profile avatar and handles logout', async () => {
-    render(
-      <BrowserRouter>
-        <Header />
-      </BrowserRouter>
-    );
-    fireEvent.click(screen.getByAltText('Profile'));
-    const profileMenuItem = await screen.findByText('Profile');
-    const logoutMenuItem = await screen.findByText('Logout');
-    expect(profileMenuItem).toBeInTheDocument();
-    expect(logoutMenuItem).toBeInTheDocument();
-    fireEvent.click(logoutMenuItem);
-    expect(localStorage.getItem('access_token')).toBeNull();
-    expect(localStorage.getItem('code_verifier')).toBeNull();
-    expect(localStorage.getItem('profile_pic')).toBeNull();
-    expect(mockedNavigate).toHaveBeenCalledWith('/');
-  });
-
-  test('renders back arrow on mobile and clicking it calls navigate(-1)', () => {
-    mockedUseMediaQuery.mockReturnValue(true);
-    render(
-      <BrowserRouter>
-        <Header />
-      </BrowserRouter>
-    );
-    const backButton = screen.getByRole('button', { name: /back/i });
-    expect(backButton).toBeInTheDocument();
-    fireEvent.click(backButton);
-    expect(mockedNavigate).toHaveBeenCalledWith(-1);
-    
+  it('navigates to Home when title container is pressed', async () => {
+    (AsyncStorage.getItem as jest.Mock)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    (useRoute as jest.Mock).mockReturnValue({ name: 'Details' });
+    mockCanGoBack.mockReturnValue(false);
+    const { getByText } = render(<Header />);
+    await waitFor(() => expect(AsyncStorage.getItem).toHaveBeenCalled());
+    const titleText = getByText('Janitor');
+    fireEvent.press(titleText);
+    expect(mockNavigate).toHaveBeenCalledWith('Home');
   });
 });

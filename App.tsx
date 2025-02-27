@@ -1,23 +1,29 @@
-import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet, SafeAreaView } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator, StackNavigationProp } from '@react-navigation/stack';
+import React, { useState, useEffect, createContext } from 'react';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  SafeAreaView,
+  View
+} from 'react-native';
+import Toast from 'react-native-toast-message';
+import { toastConfig } from './src/toastConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+
 import LoginPage from './src/screens/LoginPage';
 import Callback from './src/screens/Callback';
 import SavedTracksPage from './src/screens/SavedTracksPage';
-import { refreshAccessToken } from './src/services/auth';
-import Toast from 'react-native-toast-message';
-import { toastConfig } from './src/toastConfig';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import ProtectedRoute from './src/components/ProtectedRoute';
+import {
+  refreshAccessToken,
+  logout as logoutFn
+} from './src/services/auth'; 
+import { AuthContext } from './src/context/AuthContext';
 
-type RootStackParamList = {
-  Login: undefined;
-  Callback: undefined;
-  SavedTracks: undefined;
-};
 
-const Stack = createStackNavigator<RootStackParamList>();
+const Stack = createStackNavigator();
 
 const linking = {
   prefixes: ['spotifyjanitor://'],
@@ -29,70 +35,122 @@ const linking = {
   },
 };
 
-const App = () => {
-  const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
+export default function App() {
+  const [appLoading, setAppLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    MaterialIcons.loadFont(); 
+  }, []);
+
+  useEffect(() => {
+
+    const checkTokens = async () => {
       try {
-        const token = await AsyncStorage.getItem('access_token');
-        const tokenExpiry = await AsyncStorage.getItem('token_expiry');
-        if (token && tokenExpiry && Date.now() < Number(tokenExpiry)) {
-          setAuthenticated(true);
-        } else {
-          const refreshToken = await AsyncStorage.getItem('refresh_token');
-          if (refreshToken) {
+        const accessToken = await AsyncStorage.getItem('access_token');
+        const expiryString = await AsyncStorage.getItem('token_expiry');
+        const refreshToken = await AsyncStorage.getItem('refresh_token');
+
+        console.log('[Startup] Stored tokens:', {
+          accessToken,
+          expiryString,
+          refreshToken,
+        });
+
+        if (accessToken && expiryString && Date.now() < Number(expiryString)) {
+          console.log('[Startup] Access token is still valid.');
+          setIsAuthenticated(true);
+          return;
+        }
+
+        if (refreshToken) {
+          console.log('[Startup] Attempting to refresh...');
+          try {
             await refreshAccessToken();
-            setAuthenticated(true);
-          } else {
-            setAuthenticated(false);
+            const newAccess = await AsyncStorage.getItem('access_token');
+            const newExpiryStr = await AsyncStorage.getItem('token_expiry');
+            if (newAccess && newExpiryStr && Date.now() < Number(newExpiryStr)) {
+              console.log('[Startup] Successfully refreshed, user is authed');
+              setIsAuthenticated(true);
+              return;
+            } else {
+              console.log('[Startup] Refresh attempt failed or still invalid');
+              setIsAuthenticated(false);
+            }
+          } catch (err) {
+            console.log('[Startup] Refresh error:', err);
+            setIsAuthenticated(false);
           }
+        } else {
+          console.log('[Startup] No valid tokens, must log in');
+          setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error('Auth check error:', error);
-        setAuthenticated(false);
+        console.log('[Startup] Error checking tokens:', error);
+        setIsAuthenticated(false);
       } finally {
-        setLoading(false);
+        setAppLoading(false);
       }
     };
 
-    checkAuth();
+    checkTokens();
   }, []);
 
-  useEffect(() => {
-    MaterialIcons.loadFont();
-  }, []);
+  const logout = async () => {
+    await logoutFn(); 
+    setIsAuthenticated(false);
+  };
 
-  if (loading) {
+  if (appLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#1ED760" />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <NavigationContainer linking={linking}>
-        <Stack.Navigator initialRouteName={authenticated ? "SavedTracks" : "Login"} screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Login" component={LoginPage} />
-          <Stack.Screen name="Callback" component={Callback} />
-          <Stack.Screen name="SavedTracks" component={SavedTracksPage} />
-        </Stack.Navigator>
-      </NavigationContainer>
-      <Toast config={toastConfig} />
-    </SafeAreaView>
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        setIsAuthenticated,
+        logout,
+      }}
+    >
+      <SafeAreaView style={{ flex: 1 }}>
+        <NavigationContainer linking={linking}>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+
+            {!isAuthenticated ? (
+              <>
+                <Stack.Screen name="Login" component={LoginPage} />
+                <Stack.Screen name="Callback" component={Callback} />
+              </>
+            ) : (
+              <>
+
+                <Stack.Screen name="SavedTracks">
+                  {() => (
+                    <ProtectedRoute>
+                      <SavedTracksPage />
+                    </ProtectedRoute>
+                  )}
+                </Stack.Screen>
+              </>
+            )}
+          </Stack.Navigator>
+        </NavigationContainer>
+        <Toast config={toastConfig} />
+      </SafeAreaView>
+    </AuthContext.Provider>
   );
-};
+}
 
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#121212'
+    backgroundColor: '#121212',
   },
 });
-
-export default App;

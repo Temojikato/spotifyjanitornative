@@ -1,17 +1,22 @@
-// HomeRedirect.tsx
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+
+type RootStackParamList = {
+  SavedTracks: undefined;
+  Login: undefined;
+};
 
 const HomeRedirect: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   useEffect(() => {
     const checkToken = async () => {
       const token = await AsyncStorage.getItem('access_token');
       if (token) {
-        navigation.replace('SavedTracks'); // Replace with your actual route name
+        navigation.replace('SavedTracks');
       } else {
         navigation.replace('Login');
       }
@@ -20,8 +25,8 @@ const HomeRedirect: React.FC = () => {
   }, [navigation]);
 
   return (
-    <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-      <ActivityIndicator size="large" color="#1ED760" />
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <ActivityIndicator testID="loading-indicator" size="large" color="#1ED760" />
     </View>
   );
 };

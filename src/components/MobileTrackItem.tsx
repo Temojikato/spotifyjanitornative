@@ -23,15 +23,13 @@ const MobileTrackItem: React.FC<MobileTrackItemProps> = ({ id, title, artist, al
   const [containerWidth, setContainerWidth] = useState(0);
   const [currentDelta, setCurrentDelta] = useState(0);
 
-  // Measure container width using onLayout
   const onContainerLayout = (e: LayoutChangeEvent) => {
     setContainerWidth(e.nativeEvent.layout.width);
   };
 
-  // Set up a listener to update local state for conditional rendering
   useEffect(() => {
-    const id = swipeDelta.addListener(({ value }) => setCurrentDelta(value));
-    return () => swipeDelta.removeListener(id);
+    const listenerId = swipeDelta.addListener(({ value }) => setCurrentDelta(value));
+    return () => swipeDelta.removeListener(listenerId);
   }, [swipeDelta]);
 
   const threshold = Math.max(containerWidth * 0.75, 150);
@@ -48,7 +46,6 @@ const MobileTrackItem: React.FC<MobileTrackItemProps> = ({ id, title, artist, al
         if (gestureState.dx >= threshold) {
           onRemove(id);
         }
-        // Animate back to 0 if not removed
         Animated.timing(swipeDelta, {
           toValue: 0,
           duration: 200,
@@ -59,14 +56,18 @@ const MobileTrackItem: React.FC<MobileTrackItemProps> = ({ id, title, artist, al
   ).current;
 
   return (
-    <View style={styles.container} onLayout={onContainerLayout}>
-      {/* Background delete view */}
+    <View
+      testID="container"
+      style={styles.container}
+      onLayout={onContainerLayout}
+    >
       {currentDelta > 20 && (
         <View style={[styles.deleteBackground, { width: currentDelta }]}>
           <MaterialIcons name="delete" size={24} color="white" />
         </View>
       )}
       <Animated.View
+        testID="swipe-view"
         style={[styles.item, { transform: [{ translateX: swipeDelta }] }]}
         {...panResponder.panHandlers}
       >

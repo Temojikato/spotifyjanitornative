@@ -1,3 +1,5 @@
+import 'react-native-gesture-handler/jestSetup';
+
 import { TextEncoder, TextDecoder } from 'util';
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
@@ -22,10 +24,20 @@ try {
     };
   });
 
-  jest.mock('@react-native-async-storage/async-storage', () =>
-    require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+  jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
+
+  jest.mock('react-native-reanimated', () =>
+    require('react-native-reanimated/mock')
   );
 
-  jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
+  jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
+
+
+  beforeEach(() => {
+    mockAsyncStorage.clear();
+    jest.clearAllMocks();
+    jest.spyOn(Date, 'now').mockImplementation(() => 1_000_000);
+  });
+
 } catch (e) {
 }

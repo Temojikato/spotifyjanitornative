@@ -18,7 +18,6 @@ const Header: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
 
-  // Determine if the avatar should show (i.e. when logged in)
   useEffect(() => {
     const checkLogin = async () => {
       const token = await AsyncStorage.getItem('access_token');
@@ -29,7 +28,6 @@ const Header: React.FC = () => {
     checkLogin();
   }, []);
 
-  // Define which route names shouldn’t show the back arrow.
   const excludedRoutes = ['Home', 'Login', 'SavedTracks'];
   const showBackArrow =
     !excludedRoutes.includes(route.name as string) && navigation.canGoBack();
@@ -39,7 +37,6 @@ const Header: React.FC = () => {
   };
 
   const handleTitleClick = () => {
-    // Redirect to your home screen – adjust as needed
     navigation.navigate('Home' as never);
   };
 
@@ -47,7 +44,7 @@ const Header: React.FC = () => {
     <View style={styles.header}>
       {showBackArrow && (
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Text style={styles.backText}>{'<'}{/* Replace with an icon if desired */}</Text>
+          <Text style={styles.backText}>{'<'}</Text>
         </TouchableOpacity>
       )}
       <TouchableOpacity onPress={handleTitleClick} style={styles.titleContainer}>
@@ -71,7 +68,6 @@ const Header: React.FC = () => {
         </TouchableOpacity>
       )}
 
-      {/* Profile modal is now opened immediately when avatar is pressed */}
       <ProfileModal
         open={profileModalVisible}
         onClose={() => setProfileModalVisible(false)}

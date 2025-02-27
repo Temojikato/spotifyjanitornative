@@ -1,34 +1,30 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import UndoToast from '../../components/UndoToast';
+import { render, fireEvent } from '@testing-library/react-native';
+import UndoToast from '../../src/components/UndoToast';
 
 describe('UndoToast', () => {
-  test('renders the correct text with track title', () => {
-    render(<UndoToast trackTitle="Test Song" onUndo={() => {}} />);
-    expect(screen.getByText('Removed "Test Song"')).toBeInTheDocument();
+  it('renders correctly with given trackTitle', () => {
+    const onUndo = jest.fn();
+    const { getByText } = render(<UndoToast trackTitle="Test Song" onUndo={onUndo} />);
+    expect(getByText('Removed "Test Song"')).toBeTruthy();
+    expect(getByText('Undo')).toBeTruthy();
   });
 
-  test('calls onUndo and closeToast when button is clicked (both provided)', () => {
-    const onUndoMock = jest.fn();
-    const closeToastMock = jest.fn();
-    render(
-      <UndoToast
-        trackTitle="Test Song"
-        onUndo={onUndoMock}
-        closeToast={closeToastMock}
-      />
+  it('calls onUndo and closeToast when button is pressed', () => {
+    const onUndo = jest.fn();
+    const closeToast = jest.fn();
+    const { getByText } = render(
+      <UndoToast trackTitle="Test Song" onUndo={onUndo} closeToast={closeToast} />
     );
-    const button = screen.getByRole('button', { name: /undo/i });
-    fireEvent.click(button);
-    expect(onUndoMock).toHaveBeenCalledTimes(1);
-    expect(closeToastMock).toHaveBeenCalledTimes(1);
+    fireEvent.press(getByText('Undo'));
+    expect(onUndo).toHaveBeenCalled();
+    expect(closeToast).toHaveBeenCalled();
   });
 
-  test('calls only onUndo when closeToast is not provided', () => {
-    const onUndoMock = jest.fn();
-    render(<UndoToast trackTitle="Test Song" onUndo={onUndoMock} />);
-    const button = screen.getByRole('button', { name: /undo/i });
-    fireEvent.click(button);
-    expect(onUndoMock).toHaveBeenCalledTimes(1);
+  it('calls only onUndo when closeToast is not provided', () => {
+    const onUndo = jest.fn();
+    const { getByText } = render(<UndoToast trackTitle="Test Song" onUndo={onUndo} />);
+    fireEvent.press(getByText('Undo'));
+    expect(onUndo).toHaveBeenCalled();
   });
 });

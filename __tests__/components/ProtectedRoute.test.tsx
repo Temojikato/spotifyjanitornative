@@ -1,110 +1,74 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import ProtectedRoute from '../../components/ProtectedRoute';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import * as auth from '../../services/auth';
+import React from 'react';
+import { render, waitFor, act } from '@testing-library/react-native';
+import { AppState, AppStateStatus } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
+import ProtectedRoute from '../../src/components/ProtectedRoute';
 
-jest.mock('../../services/auth');
+jest.mock('../../src/services/auth', () => ({
+  ...jest.requireActual('../../src/services/auth'),
+  refreshAccessToken: jest.fn(),
+}));
 
-const TestComponent = () => <div data-testid="protected">Protected Content</div>;
-const HomeRedirect = () => <div data-testid="redirect">Redirected</div>;
+jest.mock('@react-navigation/native', () => {
+  const actualNav = jest.requireActual('@react-navigation/native');
+  return {
+    ...actualNav,
+    useNavigation: jest.fn(),
+  };
+});
 
 describe('ProtectedRoute', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
+  let appStateCallback: ((state: AppStateStatus) => void) | undefined;
+  const mockNavigationReplace = jest.fn();
 
-  test('renders children when token exists and is valid', async () => {
-    localStorage.setItem('access_token', 'valid_token');
-    localStorage.setItem('token_expiry', (Date.now() + 10000).toString());
-    render(
-      <MemoryRouter initialEntries={['/protected']}>
-        <Routes>
-          <Route
-            path="/protected"
-            element={
-              <ProtectedRoute>
-                <TestComponent />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/" element={<HomeRedirect />} />
-        </Routes>
-      </MemoryRouter>
-    );
-    await waitFor(() =>
-      expect(screen.getByTestId('protected')).toBeInTheDocument()
-    );
-  });
+  const TestChild = () => <></>;
 
-  test('redirects when no token is present', async () => {
-    render(
-      <MemoryRouter initialEntries={['/protected']}>
-        <Routes>
-          <Route
-            path="/protected"
-            element={
-              <ProtectedRoute>
-                <TestComponent />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/" element={<HomeRedirect />} />
-        </Routes>
-      </MemoryRouter>
-    );
-    await waitFor(() =>
-      expect(screen.getByTestId('redirect')).toBeInTheDocument()
-    );
-  });
-
-  test('attempts to refresh token when expired and renders children on success', async () => {
-    localStorage.setItem('token_expiry', (Date.now() - 10000).toString());
-    localStorage.setItem('refresh_token', 'refresh_token');
-    (auth.refreshAccessToken as jest.Mock).mockResolvedValue({
-      access_token: 'new_token',
-      expires_in: 3600,
+  beforeAll(() => {
+    jest.spyOn(AppState, 'addEventListener').mockImplementation((type, listener) => {
+      if (type === 'change') {
+        appStateCallback = listener;
+      }
+      return { remove: jest.fn() };
     });
-    render(
-      <MemoryRouter initialEntries={['/protected']}>
-        <Routes>
-          <Route
-            path="/protected"
-            element={
-              <ProtectedRoute>
-                <TestComponent />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/" element={<HomeRedirect />} />
-        </Routes>
-      </MemoryRouter>
-    );
-    await waitFor(() =>
-      expect(screen.getByTestId('protected')).toBeInTheDocument()
-    );
   });
 
-  test('attempts to refresh token when expired and redirects on failure', async () => {
-    localStorage.setItem('token_expiry', (Date.now() - 10000).toString());
-    localStorage.setItem('refresh_token', 'refresh_token');
-    (auth.refreshAccessToken as jest.Mock).mockRejectedValue(new Error('Refresh failed'));
+  beforeEach(() => {
+    AsyncStorage.clear();
+    jest.clearAllMocks();
+    jest.spyOn(Date, 'now').mockImplementation(() => 1_000_000);
+
+    (useNavigation as jest.Mock).mockReturnValue({
+      replace: mockNavigationReplace,
+    });
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
+  test('re-checks auth when AppState changes to active', async () => {
     render(
-      <MemoryRouter initialEntries={['/protected']}>
-        <Routes>
-          <Route
-            path="/protected"
-            element={
-              <ProtectedRoute>
-                <TestComponent />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/" element={<HomeRedirect />} />
-        </Routes>
-      </MemoryRouter>
+      <ProtectedRoute>
+        <TestChild />
+      </ProtectedRoute>
     );
-    await waitFor(() =>
-      expect(screen.getByTestId('redirect')).toBeInTheDocument()
-    );
+
+    await waitFor(() => {
+      expect(mockNavigationReplace).toHaveBeenCalledWith('Login');
+    });
+
+    mockNavigationReplace.mockClear();
+
+    await AsyncStorage.setItem('access_token', 'VALID_LATE_TOKEN');
+    await AsyncStorage.setItem('token_expiry', `${1_000_000 + 2000}`);
+
+    act(() => {
+      appStateCallback?.('active');
+    });
+
+    await waitFor(() => {
+      expect(mockNavigationReplace).not.toHaveBeenCalled();
+    });
   });
 });

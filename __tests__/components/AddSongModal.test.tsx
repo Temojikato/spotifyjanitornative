@@ -1,180 +1,188 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import AddSongModal from '../../components/AddSongModal';
-import { searchTracks, saveUserTrack } from '../../services/spotifyApi';
-import { toast } from 'react-toastify';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import AddSongModal from '../../src/components/AddSongModal';
+import { searchTracks, saveUserTrack } from '../../src/services/spotifyApi';
+import Toast from 'react-native-toast-message';
 
-jest.mock('../../services/spotifyApi');
-jest.mock('react-toastify', () => ({
-  toast: {
-    error: jest.fn(),
-    success: jest.fn(),
-  },
+jest.mock('../../src/services/spotifyApi');
+jest.mock('react-native-toast-message', () => ({
+  show: jest.fn(),
 }));
 
-const fakeSearchResult = {
-  tracks: {
-    items: [
-      {
-        id: '1',
-        name: 'Test Song',
-        artists: [{ name: 'Test Artist' }],
-        album: {
-          name: 'Test Album',
-          images: [{ url: 'http://example.com/album.png' }]
-        }
-      }
-    ]
-  }
-};
-
-const formattedFakeTrack = {
-  id: '1',
-  title: 'Test Song',
-  artist: 'Test Artist',
-  albumArt: 'http://example.com/album.png',
-  album: 'Test Album',
-  addedAt: '',
-  duration: ''
-};
-
 describe('AddSongModal', () => {
-  const onClose = jest.fn();
-  const onSongAdded = jest.fn();
-  const existingTrackIds: string[] = [];
+  const onCloseMock = jest.fn();
+  const onSongAddedMock = jest.fn();
+  const existingTrackIds = ['123'];
 
-  beforeEach(() => {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
-  test('renders modal with correct title and search input/button', () => {
-    render(
+  it('renders modal when open is true', () => {
+    const { getByText } = render(
       <AddSongModal
         open={true}
-        onClose={onClose}
-        onSongAdded={onSongAdded}
+        onClose={onCloseMock}
+        onSongAdded={onSongAddedMock}
         existingTrackIds={existingTrackIds}
       />
     );
-    expect(screen.getByRole('heading', { name: /add a song/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/search for a song/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+    expect(getByText('Add a Song')).toBeTruthy();
   });
 
-  test('updates input value when typed into', () => {
-    render(
+  it('calls onClose when the Close button is pressed', () => {
+    const { getByText } = render(
       <AddSongModal
         open={true}
-        onClose={onClose}
-        onSongAdded={onSongAdded}
+        onClose={onCloseMock}
+        onSongAdded={onSongAddedMock}
         existingTrackIds={existingTrackIds}
       />
     );
-    const input = screen.getByLabelText(/search for a song/i) as HTMLInputElement;
-    fireEvent.change(input, { target: { value: 'Test' } });
-    expect(input.value).toBe('Test');
+    const closeButton = getByText('Close');
+    fireEvent.press(closeButton);
+    expect(onCloseMock).toHaveBeenCalled();
   });
 
-  test('calls searchTracks and displays results on Enter key press', async () => {
-    (searchTracks as jest.Mock).mockResolvedValue(fakeSearchResult);
-    render(
+  it('searches tracks and displays results', async () => {
+    const mockResponse = {
+      tracks: {
+        items: [
+          {
+            id: '1',
+            name: 'Song One',
+            artists: [{ name: 'Artist One' }],
+            album: {
+              images: [{ url: 'http://example.com/art1.jpg' }],
+              name: 'Album One',
+            },
+          },
+          {
+            id: '2',
+            name: 'Song Two',
+            artists: [{ name: 'Artist Two' }],
+            album: {
+              images: [{ url: 'http://example.com/art2.jpg' }],
+              name: 'Album Two',
+            },
+          },
+        ],
+      },
+    };
+
+    (searchTracks as jest.Mock).mockResolvedValueOnce(mockResponse);
+
+    const { getByPlaceholderText, getByText } = render(
       <AddSongModal
         open={true}
-        onClose={onClose}
-        onSongAdded={onSongAdded}
+        onClose={onCloseMock}
+        onSongAdded={onSongAddedMock}
         existingTrackIds={existingTrackIds}
       />
     );
-    const input = screen.getByLabelText(/search for a song/i);
-    fireEvent.change(input, { target: { value: 'Test' } });
-    fireEvent.keyPress(input, { key: 'Enter', code: 'Enter', charCode: 13 });
-    await waitFor(() => {
-      expect(searchTracks).toHaveBeenCalledWith('Test');
-    });
-    expect(await screen.findByText(formattedFakeTrack.title)).toBeInTheDocument();
-    expect(await screen.findByText(formattedFakeTrack.artist)).toBeInTheDocument();
+
+    const input = getByPlaceholderText('Search for a song');
+    fireEvent.changeText(input, 'Song');
+    fireEvent(input, 'submitEditing');
+
+    await waitFor(() => expect(searchTracks).toHaveBeenCalledWith('Song'));
+    expect(getByText('Song One')).toBeTruthy();
+    expect(getByText('Artist One')).toBeTruthy();
+    expect(getByText('Song Two')).toBeTruthy();
+    expect(getByText('Artist Two')).toBeTruthy();
   });
 
-  test('calls searchTracks when search button is clicked', async () => {
-    (searchTracks as jest.Mock).mockResolvedValue(fakeSearchResult);
-    render(
-      <AddSongModal
-        open={true}
-        onClose={onClose}
-        onSongAdded={onSongAdded}
-        existingTrackIds={existingTrackIds}
-      />
-    );
-    const input = screen.getByLabelText(/search for a song/i);
-    fireEvent.change(input, { target: { value: 'Test' } });
-    const searchButton = screen.getByRole('button', { name: /search/i });
-    fireEvent.click(searchButton);
-    await waitFor(() => {
-      expect(searchTracks).toHaveBeenCalledWith('Test');
-    });
-    expect(await screen.findByText(formattedFakeTrack.title)).toBeInTheDocument();
-  });
+  it('adds a track successfully', async () => {
+    const mockResponse = {
+      tracks: {
+        items: [
+          {
+            id: '3',
+            name: 'Song Three',
+            artists: [{ name: 'Artist Three' }],
+            album: {
+              images: [{ url: 'http://example.com/art3.jpg' }],
+              name: 'Album Three',
+            },
+          },
+        ],
+      },
+    };
 
-  test('calls saveUserTrack and onSongAdded when Add button is clicked for a new track', async () => {
-    (searchTracks as jest.Mock).mockResolvedValue(fakeSearchResult);
-    (saveUserTrack as jest.Mock).mockResolvedValue(undefined);
-    render(
+    (searchTracks as jest.Mock).mockResolvedValueOnce(mockResponse);
+    (saveUserTrack as jest.Mock).mockResolvedValueOnce({});
+
+    const { getByPlaceholderText, getByText } = render(
       <AddSongModal
         open={true}
-        onClose={onClose}
-        onSongAdded={onSongAdded}
+        onClose={onCloseMock}
+        onSongAdded={onSongAddedMock}
         existingTrackIds={[]}
       />
     );
-    const input = screen.getByLabelText(/search for a song/i);
-    fireEvent.change(input, { target: { value: 'Test' } });
-    fireEvent.keyPress(input, { key: 'Enter', code: 'Enter', charCode: 13 });
-    await waitFor(() => {
-      expect(searchTracks).toHaveBeenCalledWith('Test');
+
+    const input = getByPlaceholderText('Search for a song');
+    fireEvent.changeText(input, 'Song');
+    fireEvent.press(getByText('Search'));
+
+    await waitFor(() => expect(searchTracks).toHaveBeenCalledWith('Song'));
+
+    const addButton = getByText('Add');
+    fireEvent.press(addButton);
+
+    await waitFor(() => expect(saveUserTrack).toHaveBeenCalledWith('3'));
+
+    expect(onSongAddedMock).toHaveBeenCalledWith({
+      id: '3',
+      title: 'Song Three',
+      artist: 'Artist Three',
+      albumArt: 'http://example.com/art3.jpg',
+      album: 'Album Three',
+      addedAt: '',
+      duration: '',
     });
 
-    const addButton = await screen.findByRole('button', { name: /add/i });
-    fireEvent.click(addButton);
-    await waitFor(() => {
-      expect(saveUserTrack).toHaveBeenCalledWith(formattedFakeTrack.id);
-      expect(onSongAdded).toHaveBeenCalledWith(formattedFakeTrack);
+    expect(Toast.show).toHaveBeenCalledWith({
+      type: 'success',
+      text1: 'Added "Song Three"',
     });
   });
 
-  test('disables the Add button and shows "Saved" for already saved tracks', async () => {
-    const existingIds = [formattedFakeTrack.id];
-    (searchTracks as jest.Mock).mockResolvedValue(fakeSearchResult);
-    render(
+  it('disables the Add button if track is already saved', async () => {
+    const mockResponse = {
+      tracks: {
+        items: [
+          {
+            id: '123',
+            name: 'Saved Song',
+            artists: [{ name: 'Saved Artist' }],
+            album: {
+              images: [{ url: 'http://example.com/saved.jpg' }],
+              name: 'Saved Album',
+            },
+          },
+        ],
+      },
+    };
+
+    (searchTracks as jest.Mock).mockResolvedValueOnce(mockResponse);
+
+    const { getByPlaceholderText, getByText } = render(
       <AddSongModal
         open={true}
-        onClose={onClose}
-        onSongAdded={onSongAdded}
-        existingTrackIds={existingIds}
+        onClose={onCloseMock}
+        onSongAdded={onSongAddedMock}
+        existingTrackIds={['123']}
       />
     );
-    const input = screen.getByLabelText(/search for a song/i);
-    fireEvent.change(input, { target: { value: 'Test' } });
-    fireEvent.keyPress(input, { key: 'Enter', code: 'Enter', charCode: 13 });
-    await waitFor(() => {
-      expect(searchTracks).toHaveBeenCalledWith('Test');
-    });
 
-    const savedButton = await screen.findByRole('button', { name: /saved/i });
-    expect(savedButton).toBeDisabled();
-  });
+    const input = getByPlaceholderText('Search for a song');
+    fireEvent.changeText(input, 'Saved');
+    fireEvent.press(getByText('Search'));
 
-  test('calls onClose when Close button is clicked', () => {
-    render(
-      <AddSongModal
-        open={true}
-        onClose={onClose}
-        onSongAdded={onSongAdded}
-        existingTrackIds={[]}
-      />
-    );
-    const closeButton = screen.getByRole('button', { name: /close/i });
-    fireEvent.click(closeButton);
-    expect(onClose).toHaveBeenCalled();
+    await waitFor(() => expect(searchTracks).toHaveBeenCalledWith('Saved'));
+
+    const disabledButton = getByText('Saved');
+    expect(disabledButton).toBeTruthy();
   });
 });

@@ -26,32 +26,41 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     try {
       const token = await AsyncStorage.getItem('access_token');
       const tokenExpiry = await AsyncStorage.getItem('token_expiry');
+      const refreshToken = await AsyncStorage.getItem('refresh_token');
+  
       if (token && tokenExpiry && Date.now() < Number(tokenExpiry)) {
         setAuthenticated(true);
-      } else {
-        const refreshToken = await AsyncStorage.getItem('refresh_token');
-        if (refreshToken) {
-          await refreshAccessToken();
+      }
+      else if (refreshToken) {
+        console.log('Trying to refresh token...');
+        await refreshAccessToken();
+        const refreshedToken = await AsyncStorage.getItem('access_token');
+        const refreshedExpiry = await AsyncStorage.getItem('token_expiry');
+  
+        if (refreshedToken && refreshedExpiry && Date.now() < Number(refreshedExpiry)) {
+          console.log('Refresh succeeded, setAuthenticated(true)');
           setAuthenticated(true);
         } else {
-          setAuthenticated(false);
+          console.log('Refresh failed or still invalid, goto Login');
           navigation.replace('Login');
         }
+      } else {
+        console.log('No token or refresh token, goto Login');
+        navigation.replace('Login');
       }
     } catch (error) {
-      setAuthenticated(false);
+      console.error('Error in checkAuth:', error);
       navigation.replace('Login');
     } finally {
       setLoading(false);
     }
   };
+  
 
   useEffect(() => {
     checkAuth();
-
     const subscription = AppState.addEventListener('change', async nextAppState => {
       if (nextAppState === 'active') {
-        // When the app comes to foreground, re-check authentication
         await checkAuth();
       }
     });
@@ -61,7 +70,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#fff" />
+        <ActivityIndicator  testID="activity-indicator" size="large" color="#fff" />
       </View>
     );
   }

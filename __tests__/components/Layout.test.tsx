@@ -1,18 +1,27 @@
-import { render, screen } from '@testing-library/react';
-import Layout from '../../components/Layout';
+import React from 'react';
+import { render } from '@testing-library/react-native';
+import Layout from '../../src/components/Layout';
+import { Text } from 'react-native';
 
-jest.mock('../../components/Header', () => () => (
-  <div data-testid="header" style={{ height: '50px' }}>Header</div>
-));
+jest.mock('react-native-linear-gradient', () => {
+  const React = require('react');
+  return (props: any) => <>{props.children}</>;
+});
+
+jest.mock('../../src/components/Header', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  return () => <Text>Header Component</Text>;
+});
 
 describe('Layout', () => {
-  test('renders header and children', () => {
-    render(
+  it('renders header, children and gradient background', () => {
+    const { getByText } = render(
       <Layout>
-        <div data-testid="child">Child Content</div>
+        <Text>Test Child</Text>
       </Layout>
     );
-    expect(screen.getByTestId('header')).toBeInTheDocument();
-    expect(screen.getByTestId('child')).toBeInTheDocument();
+    expect(getByText('Header Component')).toBeTruthy();
+    expect(getByText('Test Child')).toBeTruthy();
   });
 });

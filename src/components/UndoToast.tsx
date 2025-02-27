@@ -1,4 +1,3 @@
-// src/components/UndoToast.tsx
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { globalToastStyles } from '../styles/globalToastStyles';
@@ -31,17 +30,16 @@ const UndoToast: React.FC<UndoToastProps> = ({ trackTitle, onUndo, closeToast, s
 const styles = StyleSheet.create({
   undoContainer: {
     flexDirection: 'row',
-    // Override global alignment
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
-    paddingHorizontal: 8, // optional: additional horizontal padding if desired
+    paddingHorizontal: 8, 
   },
   message: {
     flex: 1,
     marginRight: 8,
     fontSize: 16,
-    color: 'white', // force white text if global style isn't applied correctly
+    color: 'white', 
     textAlign: 'left',
   },
   button: {
