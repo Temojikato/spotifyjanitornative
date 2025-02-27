@@ -22,7 +22,7 @@ A production build of the APK has already been pushed to the repository. Follow 
 1. **Clone the repository:**  
    
    Open a terminal at the location you want to download the repository and run :
-2. 
+
    ```git clone https://github.com/Temojikato/spotifyjanitornative.git  ``` <br>
    ```cd spotifyjanitor```
 
@@ -129,7 +129,7 @@ Een productiebuild van de APK is al naar de repository gepusht. Volg deze stappe
 
 1. **Clone de repository:**  
    Open een terminal op de locatie waar je de app wilt downloaden en run :
-2. 
+
    ```git clone https://github.com/Temojikato/spotifyjanitornative.git  ``` <br>
    ```cd spotifyjanitor```
 
